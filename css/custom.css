@@ -1,0 +1,46 @@
+.chrome-ext-checkbox-wrap {
+    width: 90%;
+    /* position: relative; */
+    margin: 0 auto;
+    /* top: 30%; */
+    /* height: 40%; */
+    /* background-color: #eee; */
+    /* color: #000; */
+}
+
+.chrome-ext-checkbox-wrap input[type="checkbox"] {
+    /* width: 40px; */
+    /* height: 40px; */
+    /* -webkit-border-radius: 50%; */
+    display: none;
+}
+
+.chrome-ext-checkbox-wrap input[type="checkbox"]+label {
+    display: inline-block;
+    width: 48%;
+    margin-top: 10px;
+    margin-left: 5px;
+    text-align: left;
+    -webkit-box-sizing: border-box;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.chrome-ext-checkbox-wrap label::before {
+    content: "";
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    background: #EEE;
+    vertical-align: middle;
+    -webkit-border-radius: 50%;
+    margin-right: 5px;
+    -webkit-box-sizing: border-box;
+    -webkit-transition: background ease-in .5s
+}
+
+.chrome-ext-checkbox-wrap input[type="checkbox"]:checked+label::before {
+    background-color: rgb(53, 183, 111);
+    border: 5px #EEEEEE solid;
+}
