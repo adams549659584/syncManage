@@ -120,8 +120,8 @@ function initSyncPop() {
                 if (!kadSyncConfig.envConfig.enabledTSTSync) {
                     return;
                 }
-                // btnArr = ['同步到RC', '同步到正式', '取消'];
-                btnArr = ['同步到RC', '取消'];
+                btnArr = ['同步到RC', '同步到正式', '取消'];
+                // btnArr = ['同步到RC', '取消'];
                 btn1SyncDomain = 'http://rcmanage.360kad.com';
                 btn2SyncDomain = 'http://manage.360kad.com';
                 break;
@@ -129,8 +129,8 @@ function initSyncPop() {
                 if (!kadSyncConfig.envConfig.enabledRCSync) {
                     return;
                 }
-                // btnArr = ['同步到TST', '同步到正式', '取消'];
-                btnArr = ['同步到TST', '取消'];
+                btnArr = ['同步到TST', '同步到正式', '取消'];
+                // btnArr = ['同步到TST', '取消'];
                 btn1SyncDomain = 'http://tstmanage.360kad.com';
                 btn2SyncDomain = 'http://manage.360kad.com';
                 break;
@@ -518,7 +518,7 @@ function addDictItem(syncDomian, dictArr, dictItemConfigIndex, callback) {
             if (dict.children && dict.children.length > 0) {
                 addDictItem(syncDomian, dict.children, dictItemConfigIndex, callback)
             } else {
-                console.log(`needSyncDictItemCount:${kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex]},finishedSyncDictItemCount:${kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex]}`);
+                // console.log(`needSyncDictItemCount:${kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex]},finishedSyncDictItemCount:${kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex]}`);
                 if (kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] == kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex]) {
                     callback();
                 }
