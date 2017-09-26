@@ -31,7 +31,9 @@
     ],
     syncData: null,
     syncPopIndex: 0,
-    loadingIndex: 0
+    loadingIndex: 0,
+    needSyncDictItemCount: [],
+    finishedSyncDictItemCount: []
 };
 
 // 注意，必须设置了run_at=document_start 此段代码才会生效
@@ -189,7 +191,7 @@ function initSyncPop() {
             case 19:
             case 20:
             case 21:
-                titile = '请选择需同步的广告位(广告位及广告发布会一起同步，同步会覆盖原数据)';
+                titile = '请选择需同步的广告位(广告位、广告部件及广告发布会一起同步，同步会覆盖原数据)';
                 for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
                     var element = kadSyncConfig.syncData.resData.Rows[i];
                     contentHtml += '<input type="checkbox" value="' + element.Id + '" name="choose-sync-data" id="syncdata-' + element.Id + '">' +
@@ -250,13 +252,17 @@ function syncData(syncDomian, syncUrlIndex) {
         dataType: "json"
     }).done(function(data) {
         kadSyncConfig.loadingIndex = layer.load();
+        var syncResultArr = [];
         for (var i = 0; i < allCheckedInputs.length; i++) {
             var element = allCheckedInputs[i];
             //TODO 需新增可同步内容时 ：3.新增对应接口处理同步数据
             switch (syncUrlIndex) {
                 //字典
                 case 0:
-                    syncDict(syncDomian, element.value);
+                    syncDict(syncDomian, element.value, function(syncResult) {
+                        syncResultArr.push(syncResult);
+                        finishSync(allCheckedInputs, syncResultArr);
+                    });
                     break;
                 case 1:
                 case 2:
@@ -265,7 +271,10 @@ function syncData(syncDomian, syncUrlIndex) {
                 case 5:
                 case 6:
                 case 7:
-                    syncLayout(syncDomian, syncUrlIndex, element.value);
+                    syncLayout(syncDomian, syncUrlIndex, element.value, function(syncResult) {
+                        syncResultArr.push(syncResult);
+                        finishSync(allCheckedInputs, syncResultArr);
+                    });
                     break;
                 case 8:
                 case 9:
@@ -274,17 +283,28 @@ function syncData(syncDomian, syncUrlIndex) {
                 case 12:
                 case 13:
                 case 14:
-                    syncWidget(syncDomian, syncUrlIndex, element.value);
+                    syncWidget(syncDomian, syncUrlIndex, element.value, function(syncResult) {
+                        syncResultArr.push(syncResult);
+                        finishSync(allCheckedInputs, syncResultArr);
+                    });
+                    break;
+                case 15:
+                case 16:
+                case 17:
+                case 18:
+                case 19:
+                case 20:
+                case 21:
+                    syncAdPlace(syncDomian, syncUrlIndex, element.value, function(syncResult) {
+                        syncResultArr.push(syncResult);
+                        finishSync(allCheckedInputs, syncResultArr);
+                    });
                     break;
                 default:
                     layer.msg('尚未新增相应处理接口');
                     break;
             }
         }
-        setTimeout(function() {
-            layer.close(kadSyncConfig.loadingIndex);
-            layer.msg('大概也许可能应该同步完成了');
-        }, 2000);
     }).fail(function(jqXHR) {
         layer.msg('请先登录此环境', {
             time: 2000,
@@ -295,6 +315,42 @@ function syncData(syncDomian, syncUrlIndex) {
     return false;
 }
 
+/**
+ * 完成同步
+ * 
+ * @param {array} checkedArr 
+ * @param {array} syncResultArr 
+ */
+function finishSync(checkedArr, syncResultArr) {
+    if (checkedArr.length == syncResultArr.length) {
+        var successArr = [];
+        var failedArr = [];
+        for (var i = 0; i < syncResultArr.length; i++) {
+            var element = syncResultArr[i];
+            if (element.Res.Result) {
+                successArr.push(element.Id);
+            } else {
+                failedArr.push(element.Id);
+            }
+        }
+        var str = '';
+        if (successArr.length > 0) {
+            str += `${successArr.join('、')}同步完成`;
+            if (failedArr.length > 0) {
+                str += '<br />';
+            } else {
+                str += '，具体结果请查看console';
+            }
+        }
+        if (failedArr.length > 0) {
+            str += `${failedArr.join('、')}同步失败，具体结果请查看console`;
+        }
+        layer.close(kadSyncConfig.loadingIndex);
+        layer.msg(str, { time: 5000 });
+        console.log('同步结果如下:');
+        console.log(syncResultArr);
+    }
+}
 
 //TODO 同步字典逻辑开始---------------------------------------------------------------------------------------------------------------------
 /**
@@ -303,7 +359,7 @@ function syncData(syncDomian, syncUrlIndex) {
  * @param {string} syncDomian 需同步到的域名 
  * @param {string} key 字典编码 
  */
-function syncDict(syncDomian, key) {
+function syncDict(syncDomian, key, successCallback) {
     var dictQueryPostData = { "filters": [{ "whereType": "equal", "field": "DictID", "value": key }], "sorts": [{ "field": "DictID", "isAsc": false }], "dbKey": null, "entityType": null, "page": 1, "pageSize": 1 };
     $.ajax({
         type: "post",
@@ -331,13 +387,13 @@ function syncDict(syncDomian, key) {
                         cache: false,
                         dataType: "json"
                     }).done(function(delRes) {
-                        initAddDictData(syncDomian, dictRes.Rows[0], key);
+                        initAddDictData(syncDomian, dictRes.Rows[0], key, successCallback);
                     }).fail(function(jqXHR) {
                         layer.msg('同步出现异常，请查看console');
                         console.error(jqXHR);
                     })
                 } else {
-                    initAddDictData(syncDomian, dictRes.Rows[0], key);
+                    initAddDictData(syncDomian, dictRes.Rows[0], key, successCallback);
                 }
             }).fail(function(jqXHR) {
                 layer.msg('同步出现异常，请查看console');
@@ -357,12 +413,12 @@ function syncDict(syncDomian, key) {
  * @param {any} dictResult dictRes.Rows[0]
  * @param {string} key 
  */
-function initAddDictData(syncDomian, dictResult, key) {
+function initAddDictData(syncDomian, dictResult, key, successCallback) {
     var newDictPostData = { "DictID": dictResult.DictID, "DictType": dictResult.DictType, "Type": dictResult.Type, "GroupDesc": "普通", "ImplementType": dictResult.ImplementType, "DictDesc": dictResult.DictDesc };
     if (dictResult.Type == 1) {
         newDictPostData.GroupDesc = '树形';
     }
-    addDict(syncDomian, newDictPostData, 1, function() {
+    addDict(syncDomian, newDictPostData, function() {
         var dictDetailQueryPostData = {
             "filters": [{
                 "field": "DictId",
@@ -385,40 +441,14 @@ function initAddDictData(syncDomian, dictResult, key) {
             dataType: "json"
         }).done(function(response) {
             if (response.Total > 0) {
-                var postDataArr = [];
-                response.Rows.forEach((dict, i) => {
-                    var postData = {
-                        DictID: dict.DictID,
-                        DictText: dict.DictText,
-                        DictValue: dict.DictValue,
-                        OrderNo: dict.OrderNo,
-                        ParentValue: dict.ParentValue,
-                        Property1: dict.Property1,
-                        Property2: dict.Property2,
-                        Property3: dict.Property3,
-                        Property4: dict.Property4,
-                        Property5: dict.Property5
-                    };
-                    addDict(syncDomian, postData, 2, function() {
-                        if (dict.children && dict.children.length > 0) {
-                            dict.children.forEach((childDict, j) => {
-                                var childPostData = {
-                                    DictID: childDict.DictID,
-                                    DictText: childDict.DictText,
-                                    DictValue: childDict.DictValue,
-                                    OrderNo: childDict.OrderNo,
-                                    ParentValue: childDict.ParentValue,
-                                    Property1: childDict.Property1,
-                                    Property2: childDict.Property2,
-                                    Property3: childDict.Property3,
-                                    Property4: childDict.Property4,
-                                    Property5: childDict.Property5
-                                };
-                                addDict(syncDomian, childPostData, 2);
-                            });
-                        }
-                    });
-                })
+                var dictItemConfigIndex = 'index-' + new Date().getTime().toString(); //简单保证下异步设置唯一的字典
+                kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] = 0;
+                kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex] = 0;
+                addDictItem(syncDomian, response.Rows, dictItemConfigIndex, function() {
+                    successCallback({ Id: key, Res: { Result: true } });
+                });
+            } else {
+                successCallback({ Id: key, Res: { Result: true } })
             }
         }).fail(function(jqXHR) {
             layer.msg('同步出现异常，请查看console');
@@ -428,25 +458,14 @@ function initAddDictData(syncDomian, dictResult, key) {
 }
 
 /**
- * 
+ * 添加字典
  * 
  * @param {string} syncDomian 需同步到的域名
  * @param {any} postData 同步的数据
- * @param {number} dictType 1-DictConfig 2-DictItemConfig
  * @param {funcion} callback 成功回调
  */
-function addDict(syncDomian, postData, dictType, callback) {
-    var url = '';
-    var dictConfigType = '';
-    switch (dictType) {
-        case 1:
-            dictConfigType = 'DictConfig';
-            break;
-        case 2:
-            dictConfigType = 'DictItemConfig';
-            break;
-    }
-    url = syncDomian + '/Config/' + dictConfigType + '/Add';
+function addDict(syncDomian, postData, callback) {
+    var url = syncDomian + '/Config/DictConfig/Add';
     $.ajax({
         type: "post",
         url: url,
@@ -463,6 +482,53 @@ function addDict(syncDomian, postData, dictType, callback) {
         console.error(jqXHR);
     });
 }
+
+/**
+ * 添加字典项
+ * 
+ * @param {string} syncDomian 需同步到的域名
+ * @param {array} dictArr 同步的数据
+ * @param {funcion} callback 成功回调
+ */
+function addDictItem(syncDomian, dictArr, dictItemConfigIndex, callback) {
+    var url = syncDomian + '/Config/DictItemConfig/Add';
+    kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] += dictArr.length;
+    dictArr.forEach((dict, i) => {
+        var postData = {
+            DictID: dict.DictID,
+            DictText: dict.DictText,
+            DictValue: dict.DictValue,
+            OrderNo: dict.OrderNo,
+            ParentValue: dict.ParentValue,
+            Property1: dict.Property1,
+            Property2: dict.Property2,
+            Property3: dict.Property3,
+            Property4: dict.Property4,
+            Property5: dict.Property5
+        };
+        $.ajax({
+            type: "post",
+            url: url,
+            cache: false,
+            data: JSON.stringify(postData),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json"
+        }).done(function(data) {
+            kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex] += 1;
+            if (dict.children && dict.children.length > 0) {
+                addDictItem(syncDomian, dict.children, dictItemConfigIndex, callback)
+            } else {
+                console.log(`needSyncDictItemCount:${kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex]},finishedSyncDictItemCount:${kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex]}`);
+                if (kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] == kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex]) {
+                    callback();
+                }
+            }
+        }).fail(function(jqXHR) {
+            layer.msg('同步出现异常，请查看console');
+            console.error(jqXHR);
+        });
+    });
+}
 //同步字典逻辑结束---------------------------------------------------------------------------------------------------------------------
 
 //TODO 同步布局模板逻辑开始------------------------------------------------------------------------------------------------------------------
@@ -473,7 +539,7 @@ function addDict(syncDomian, postData, dictType, callback) {
  * @param {number} syncUrlIndex 
  * @param {string} key 
  */
-function syncLayout(syncDomian, syncUrlIndex, key) {
+function syncLayout(syncDomian, syncUrlIndex, key, successCallback) {
     var getFormDataUrl = ''; // /CMS/MLayout/GetFormData
     switch (syncUrlIndex) {
         case 1:
@@ -518,10 +584,10 @@ function syncLayout(syncDomian, syncUrlIndex, key) {
             }).done(function(existLayoutRes) {
                 if (existLayoutRes) {
                     //修改
-                    addOrEditLayout(syncDomian, syncUrlIndex, layoutRes, 1);
+                    addOrEditLayout(syncDomian, syncUrlIndex, layoutRes, 1, successCallback);
                 } else {
                     //新增
-                    addOrEditLayout(syncDomian, syncUrlIndex, layoutRes, 0);
+                    addOrEditLayout(syncDomian, syncUrlIndex, layoutRes, 0, successCallback);
                 }
             }).fail(function(jqXHR) {
                 layer.msg('同步出现异常，请查看console');
@@ -544,7 +610,7 @@ function syncLayout(syncDomian, syncUrlIndex, key) {
  * @param {any} sourceData 
  * @param {number} type 0-新增 1-修改
  */
-function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type) {
+function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type, successCallback) {
     var url = '';
     switch (type) {
         //新增
@@ -620,6 +686,7 @@ function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type) {
         if (!addLayoutRes.Result) {
             layer.msg('同步失败，' + addLayoutRes.Message);
         }
+        successCallback({ Id: postData.Id, Res: addLayoutRes });
     }).fail(function(jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
@@ -628,7 +695,7 @@ function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type) {
 //同步布局模板逻辑结束------------------------------------------------------------------------------------------------------------------
 
 
-//TODO 同步部件模板逻辑开始------------------------------------------------------------------------------------------------------------------
+//TODO 同步部件逻辑开始------------------------------------------------------------------------------------------------------------------
 /**
  * 部件同步
  * 
@@ -636,7 +703,7 @@ function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type) {
  * @param {number} syncUrlIndex 
  * @param {string} key 
  */
-function syncWidget(syncDomian, syncUrlIndex, key) {
+function syncWidget(syncDomian, syncUrlIndex, key, successCallback) {
     var getFormDataUrl = ''; // /CMS/MWidget/GetFormData
     switch (syncUrlIndex) {
         case 8:
@@ -679,32 +746,30 @@ function syncWidget(syncDomian, syncUrlIndex, key) {
                 cache: false,
                 dataType: "json"
             }).done(function(existWidgetRes) {
-                if (widgetRes.Pic) {
-                    uploadImgToManage(syncDomian, widgetRes.Pic, function(newPicUrl) {
-                        widgetRes.Pic = newPicUrl;
-                        if (existWidgetRes) {
-                            //修改
-                            addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 1);
-                        } else {
-                            //新增
-                            addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 0);
-                        }
-                    })
-                } else {
+                (function(initPicCallback) {
+                    if (widgetRes.Pic && widgetRes.Pic.length > 0) {
+                        uploadImgToManage(syncDomian, widgetRes.Pic, function(newPicUrl) {
+                            widgetRes.Pic = newPicUrl;
+                            initPicCallback();
+                        })
+                    } else {
+                        initPicCallback();
+                    }
+                })(function() {
                     if (existWidgetRes) {
                         //修改
-                        addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 1);
+                        addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 1, successCallback);
                     } else {
                         //新增
-                        addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 0);
+                        addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 0, successCallback);
                     }
-                }
+                });
             }).fail(function(jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             })
         } else {
-            layer.msg(`未找到布局模板${key}`);
+            layer.msg(`未找到部件${key}`);
         }
     }).fail(function(jqXHR) {
         layer.msg('同步出现异常，请查看console');
@@ -720,7 +785,7 @@ function syncWidget(syncDomian, syncUrlIndex, key) {
  * @param {any} sourceData 
  * @param {number} type 0-新增 1-修改
  */
-function addOrEditWidget(syncDomian, syncUrlIndex, sourceData, type) {
+function addOrEditWidget(syncDomian, syncUrlIndex, sourceData, type, successCallback) {
     var url = '';
     switch (type) {
         //新增
@@ -802,89 +867,406 @@ function addOrEditWidget(syncDomian, syncUrlIndex, sourceData, type) {
         if (!addWidgetRes.Result) {
             layer.msg('同步失败，' + addWidgetRes.Message);
         }
+        successCallback({ Id: postData.Id, Res: addWidgetRes });
     }).fail(function(jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
 }
-//同步部件模板逻辑结束------------------------------------------------------------------------------------------------------------------
+//同步部件模板结束------------------------------------------------------------------------------------------------------------------
 
 
 //TODO 同步广告位及广告发布逻辑开始------------------------------------------------------------------------------------------------------------------
-function syncAdPlace(syncDomian, syncUrlIndex, key) {
-    var getFormDataUrl = ''; // /CMS/MWidget/GetFormData
+/**
+ * 广告位同步
+ * 
+ * @param {string} syncDomian 
+ * @param {number} syncUrlIndex 
+ * @param {string} key 
+ */
+function syncAdPlace(syncDomian, syncUrlIndex, key, successCallback) {
+    var getFormDataUrl = ''; // /CMS/AdPlace/GetFormData
     switch (syncUrlIndex) {
-        case 8:
-            getFormDataUrl = '/CMS/Widget/GetFormData';
+        case 15:
+            getFormDataUrl = '/CMS/AdPlace/GetFormData';
             break;
-        case 9:
-            getFormDataUrl = '/CMS/MWidget/GetFormData';
+        case 16:
+            getFormDataUrl = '/CMS/MAdPlace/GetFormData';
             break;
-        case 10:
-            getFormDataUrl = '/CMS/EWidget/GetFormData';
+        case 17:
+            getFormDataUrl = '/CMS/EAdPlace/GetFormData';
             break;
-        case 11:
-            getFormDataUrl = '/CMS/VWidget/GetFormData';
+        case 18:
+            getFormDataUrl = '/CMS/VAdPlace/GetFormData';
             break;
-        case 12:
-            getFormDataUrl = '/CMS/TWidget/GetFormData';
+        case 19:
+            getFormDataUrl = '/CMS/TAdPlace/GetFormData';
             break;
-        case 13:
-            getFormDataUrl = '/CMS/TMWidget/GetFormData';
+        case 20:
+            getFormDataUrl = '/CMS/TMAdPlace/GetFormData';
             break;
-        case 14:
-            getFormDataUrl = '/CMS/WSWidget/GetFormData';
+        case 21:
+            getFormDataUrl = '/CMS/WSAdPlace/GetFormData';
             break;
     }
-    var widgetQueryPostData = { "Id": key };
+    var adPlaceQueryPostData = { "Id": key };
     $.ajax({
         type: "post",
         url: getFormDataUrl,
-        data: JSON.stringify(widgetQueryPostData),
+        data: JSON.stringify(adPlaceQueryPostData),
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(widgetRes) {
-        if (widgetRes) {
+    }).done(function(adPlaceRes) {
+        console.log(`adPlaceRes:`);
+        console.log(adPlaceRes);
+        if (adPlaceRes) {
             $.ajax({
                 type: "post",
                 url: syncDomian + getFormDataUrl,
-                data: JSON.stringify(widgetQueryPostData),
+                data: JSON.stringify(adPlaceQueryPostData),
                 contentType: "application/json; charset=utf-8",
                 cache: false,
                 dataType: "json"
-            }).done(function(existWidgetRes) {
-                if (widgetRes.Pic) {
-                    uploadImgToManage(syncDomian, widgetRes.Pic, function(newPicUrl) {
-                        widgetRes.Pic = newPicUrl;
-                        if (existWidgetRes) {
-                            //修改
-                            addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 1);
-                        } else {
-                            //新增
-                            addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 0);
-                        }
-                    })
+            }).done(function(existAdPlaceRes) {
+                console.log(`existAdPlaceRes:`);
+                console.log(existAdPlaceRes);
+                if (existAdPlaceRes) {
+                    //修改
+                    addOrEditAdPlace(syncDomian, syncUrlIndex, adPlaceRes, 1, function() {
+                        syncAd(syncDomian, syncUrlIndex, key, function() {
+                            successCallback({ Id: key, Res: { Result: true } });
+                        });
+                    });
                 } else {
-                    if (existWidgetRes) {
-                        //修改
-                        addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 1);
-                    } else {
-                        //新增
-                        addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 0);
-                    }
+                    //新增
+                    addOrEditAdPlace(syncDomian, syncUrlIndex, adPlaceRes, 0, function() {
+                        syncAd(syncDomian, syncUrlIndex, key, function() {
+                            successCallback({ Id: key, Res: { Result: true } });
+                        });
+                    });
                 }
             }).fail(function(jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             })
         } else {
-            layer.msg(`未找到布局模板${key}`);
+            layer.msg(`未找到广告位${key}`);
         }
     }).fail(function(jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
+}
+
+/**
+ * 新增或修改广告位及广告部件
+ * 
+ * @param {string} syncDomian 
+ * @param {number} syncUrlIndex 
+ * @param {any} sourceData 
+ * @param {number} type 0-新增 1-修改
+ */
+function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCallback) {
+    var url = '';
+    switch (type) {
+        //新增
+        case 0:
+            switch (syncUrlIndex) {
+                case 15:
+                    url = '/CMS/AdPlace/Add';
+                    break;
+                case 16:
+                    url = '/CMS/MAdPlace/Add';
+                    break;
+                case 17:
+                    url = '/CMS/EAdPlace/Add';
+                    break;
+                case 18:
+                    url = '/CMS/VAdPlace/Add';
+                    break;
+                case 19:
+                    url = '/CMS/TAdPlace/Add';
+                    break;
+                case 20:
+                    url = '/CMS/TMAdPlace/Add';
+                    break;
+                case 21:
+                    url = '/CMS/WSAdPlace/Add';
+                    break;
+            }
+            break;
+            //修改
+        case 1:
+            switch (syncUrlIndex) {
+                case 15:
+                    url = '/CMS/AdPlace/Edit';
+                    break;
+                case 16:
+                    url = '/CMS/MAdPlace/Edit';
+                    break;
+                case 17:
+                    url = '/CMS/EAdPlace/Edit';
+                    break;
+                case 18:
+                    url = '/CMS/VAdPlace/Edit';
+                    break;
+                case 19:
+                    url = '/CMS/TAdPlace/Edit';
+                    break;
+                case 20:
+                    url = '/CMS/TMAdPlace/Edit';
+                    break;
+                case 21:
+                    url = '/CMS/WSAdPlace/Edit';
+                    break;
+            }
+            break;
+    }
+    var postData = {
+        "SiteId": sourceData.SiteId,
+        "Id": sourceData.Id,
+        "Name": sourceData.Name,
+        "WidgetId": sourceData.WidgetId,
+        "WidgetDescription": sourceData.WidgetDescription,
+        "Description": sourceData.Description,
+        "Width": sourceData.Width,
+        "Height": sourceData.Height,
+        "IsEnable": sourceData.IsEnable
+    };
+    (function(initWidgetCallback) {
+        if (postData.WidgetId && postData.WidgetId.length > 0) {
+            var widgetUrlIndex = 0;
+            switch (syncUrlIndex) {
+                case 15:
+                    widgetUrlIndex = 8;
+                    break;
+                case 16:
+                    widgetUrlIndex = 9;
+                    break;
+                case 17:
+                    widgetUrlIndex = 10;
+                    break;
+                case 18:
+                    widgetUrlIndex = 11;
+                    break;
+                case 19:
+                    widgetUrlIndex = 12;
+                    break;
+                case 20:
+                    widgetUrlIndex = 13;
+                    break;
+                case 21:
+                    widgetUrlIndex = 14;
+                    break;
+            }
+            syncWidget(syncDomian, widgetUrlIndex, postData.WidgetId, function() {
+                console.log(`广告位关联广告部件${postData.WidgetId}同步完成`);
+                initWidgetCallback();
+            });
+        } else {
+            initWidgetCallback();
+        }
+    })(function() {
+        $.ajax({
+            type: "post",
+            url: syncDomian + url,
+            data: JSON.stringify(postData),
+            contentType: "application/json; charset=utf-8",
+            cache: false,
+            dataType: "json"
+        }).done(function(addAdPlaceRes) {
+            // {"Result":true,"Message":"保存成功！","Rows":null,"Total":0}
+            if (!addAdPlaceRes.Result) {
+                layer.msg('同步失败，' + addAdPlaceRes.Message);
+            }
+            successCallback({ Id: postData.Id, Res: addAdPlaceRes });
+        }).fail(function(jqXHR) {
+            layer.msg('同步出现异常，请查看console');
+            console.error(jqXHR);
+        })
+    });
+}
+
+/**
+ * 广告发布同步
+ * 
+ * @param {string} syncDomian 
+ * @param {number} syncUrlIndex 
+ * @param {string} key 
+ */
+function syncAd(syncDomian, syncUrlIndex, key, successCallback) {
+    // {"filters":[{"whereType":"equal","field":"IsDelete","value":"0"},{"whereType":"equal","field":"AdPlaceId","value":"adp_117_preview_1_0"},{"field":"PlatForm","whereType":"Equal","value":"pc"}],"sorts":[{"field":"ADSort","isAsc":true},{"field":"CreateTime","isAsc":false}],"dbKey":null,"entityType":null,"page":1,"pageSize":20}
+    var adQueryUrl = '/CMS/Ad/Query';
+    var adQueryPostData = { "filters": [{ "whereType": "equal", "field": "AdPlaceId", "value": key }], "sorts": [{ "field": "ADSort", "isAsc": true }, { "field": "CreateTime", "isAsc": false }], "dbKey": null, "entityType": null, "page": 1, "pageSize": 50 };
+    $.ajax({
+        type: "post",
+        url: adQueryUrl,
+        data: JSON.stringify(adQueryPostData),
+        contentType: "application/json; charset=utf-8",
+        cache: false,
+        dataType: "json"
+    }).done(function(adRes) {
+        console.log(`adRes:`);
+        console.log(adRes);
+        if (adRes && adRes.Total > 0) {
+            $.ajax({
+                type: "post",
+                url: syncDomian + adQueryUrl,
+                data: JSON.stringify(adQueryPostData),
+                contentType: "application/json; charset=utf-8",
+                cache: false,
+                dataType: "json"
+            }).done(function(existAdRes) {
+                console.log(`existAdRes:`);
+                console.log(existAdRes);
+                var addAdResultArr = [];
+                (function(finishAddAdCallback) {
+                    adRes.Rows.forEach((adInfo, i) => {
+                        var thatExistAds = [];
+                        if (existAdRes && existAdRes.Total > 0) {
+                            thatExistAds = existAdRes.Rows.filter((ad) => ad.Id == adInfo.Id);
+                        }
+                        if (thatExistAds.length > 0) {
+                            //修改
+                            addOrEditAd(syncDomian, syncUrlIndex, adInfo, 1, function(syncResult) {
+                                addAdResultArr.push(syncResult);
+                                finishAddAdCallback();
+                            });
+                        } else {
+                            //新增
+                            addOrEditAd(syncDomian, syncUrlIndex, adInfo, 0, function(syncResult) {
+                                addAdResultArr.push(syncResult);
+                                finishAddAdCallback();
+                            });
+                        }
+                    });
+                })(function() {
+                    if (adRes.Rows.length == addAdResultArr.length) {
+                        successCallback({ Id: key, Res: { Result: true } });
+                    }
+                });
+            }).fail(function(jqXHR) {
+                layer.msg('同步出现异常，请查看console');
+                console.error(jqXHR);
+            })
+        } else {
+            layer.msg(`未找到广告位${key}`);
+        }
+    }).fail(function(jqXHR) {
+        layer.msg('同步出现异常，请查看console');
+        console.error(jqXHR);
+    })
+}
+
+/**
+ * 新增或修改广告发布
+ * 
+ * @param {string} syncDomian 
+ * @param {number} syncUrlIndex 
+ * @param {any} sourceData 
+ * @param {number} type 0-新增 1-修改
+ */
+function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback) {
+    var url = '';
+    switch (type) {
+        //新增
+        case 0:
+            switch (syncUrlIndex) {
+                case 15:
+                    url = '/CMS/Ad/Add';
+                    break;
+                case 16:
+                    url = '/CMS/MAd/Add';
+                    break;
+                case 17:
+                    url = '/CMS/EAd/Add';
+                    break;
+                case 18:
+                    url = '/CMS/VAd/Add';
+                    break;
+                case 19:
+                    url = '/CMS/TAd/Add';
+                    break;
+                case 20:
+                    url = '/CMS/TMAd/Add';
+                    break;
+                case 21:
+                    url = '/CMS/WSAd/Add';
+                    break;
+            }
+            break;
+            //修改
+        case 1:
+            switch (syncUrlIndex) {
+                case 15:
+                    url = '/CMS/Ad/Edit';
+                    break;
+                case 16:
+                    url = '/CMS/MAd/Edit';
+                    break;
+                case 17:
+                    url = '/CMS/EAd/Edit';
+                    break;
+                case 18:
+                    url = '/CMS/VAd/Edit';
+                    break;
+                case 19:
+                    url = '/CMS/TAd/Edit';
+                    break;
+                case 20:
+                    url = '/CMS/TMAd/Edit';
+                    break;
+                case 21:
+                    url = '/CMS/WSAd/Edit';
+                    break;
+            }
+            break;
+    }
+    //sourceData: {"ROWNUMBER__":1.0,"Id":"m_home_floor_nanke_video_02","Name":"首页楼层男科视频2","PlatForm":"m","Description":"性福蓝皮书视频","Type":"2","Pic":"http://tstimage.360kad.com/group1/M00/15/E3/wKgBEFmvqGKALBtjAABBg-XZhiY512.jpg","Text":null,"Link":"http://m.360kad.com/jknews/jksc/sp/3714205.shtml?kzone=souye_nanke_shiping","HtmlContent":null,"AdPlaceId":"m_home_floor_nanke_video","BeginTime":"2017/08/28 17:11:00","EndTime":"2022/08/31 11:05:00","IsEnable":1.0,"IsDelete":0.0,"CreateTime":"2017/09/06 15:49:06","CreateUser":"ljh1026@@","EditTime":"2017/09/26 15:32:14","EditUser":"adams5496","CateName":"M站首页楼层男科-视频","SiteId":"m","PlaceId":"m_home_floor_nanke_video","WidgetId":"m_home_floor","ADSort":0.0}
+    var postData = {
+        "Id": sourceData.Id,
+        "AdPlaceId": sourceData.AdPlaceId,
+        "Name": sourceData.Name,
+        "Description": sourceData.Description,
+        "Type": sourceData.Type,
+        "Text": sourceData.Text,
+        "Link": sourceData.Link,
+        "BeginTime": sourceData.BeginTime,
+        "EndTime": sourceData.EndTime,
+        "Pic": sourceData.Pic,
+        "HtmlContent": sourceData.HtmlContent,
+        "ADSort": sourceData.ADSort,
+        "IsEnable": sourceData.IsEnable == 1 ? true : false
+    };
+    (function(initPicCallback) {
+        if (postData.Pic && postData.Pic.length > 0) {
+            uploadImgToManage(syncDomian, postData.Pic, function(newPicUrl) {
+                postData.Pic = newPicUrl;
+                initPicCallback();
+            })
+        } else {
+            initPicCallback();
+        }
+    })(function() {
+        $.ajax({
+            type: "post",
+            url: syncDomian + url,
+            data: JSON.stringify(postData),
+            contentType: "application/json; charset=utf-8",
+            cache: false,
+            dataType: "json"
+        }).done(function(addAdRes) {
+            // {"Result":true,"Message":"保存成功！","Rows":null,"Total":0}
+            if (!addAdRes.Result) {
+                layer.msg('同步失败，' + addAdRes.Message);
+            }
+            successCallback({ Id: postData.Id, Res: addAdRes });
+        }).fail(function(jqXHR) {
+            layer.msg('同步出现异常，请查看console');
+            console.error(jqXHR);
+        })
+    });
 }
 //同步广告位及广告发布逻辑结束------------------------------------------------------------------------------------------------------------------
 
@@ -957,21 +1339,3 @@ function uploadImgToManage(syncDomian, onlineImgUrl, successCallback, errorCallb
     downloadXHR.send();
 }
 //图片上传结束-----------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-//jq
-// $.ajax({
-//     type: "post",
-//     url: "",
-//     data: JSON.stringify(),
-//     contentType: "application/json; charset=utf-8",
-//     cache: false,
-//     dataType: "json"
-// }).done(function() {
-
-// }).fail(function(jqXHR) {
-//     layer.msg('同步出现异常，请查看console');
-//     console.error(jqXHR);
-// })
