@@ -1338,4 +1338,40 @@ function uploadImgToManage(syncDomian, onlineImgUrl, successCallback, errorCallb
     }
     downloadXHR.send();
 }
+
+/**
+ * 同步在线图片
+ * 
+ * @param {string} syncDomian 要同步到的域
+ * @param {string} onlineImgUrl 在线图片url
+ * @param {any} successCallback 成功回调
+ * @param {any} errorCallback 失败回调
+ */
+function uploadImgToManage2(syncDomian, onlineImgUrl, successCallback, errorCallback) {
+    var downloadXHR = new XMLHttpRequest();
+    downloadXHR.open('GET', onlineImgUrl, true);
+    downloadXHR.responseType = 'blob';
+    downloadXHR.onload = function() {
+        if (this.status == 200) {
+            var blob = this.response;
+            var fileNameExt = onlineImgUrl.substring(onlineImgUrl.lastIndexOf("."), onlineImgUrl.length);
+            var imgFileName = 'test' + fileNameExt;
+            var form = new FormData();
+            form.append("uploadImg", blob, imgFileName);
+            var uploadXHR = new XMLHttpRequest();
+            uploadXHR.open('POST', syncDomian + 'File/Upload');
+            uploadXHR.onloadend = function() {
+                if (this.status == 200) {
+                    successCallback(this.responseText.replace('?filename=' + imgFileName, ''));
+                } else {
+                    errorCallback(this);
+                }
+            }
+            uploadXHR.send(form);
+        } else {
+            errorCallback(this);
+        }
+    };
+    downloadXHR.send();
+}
 //图片上传结束-----------------------------------------------------------------------------------------------------------------------------
