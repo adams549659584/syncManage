@@ -37,7 +37,7 @@
 };
 
 // 注意，必须设置了run_at=document_start 此段代码才会生效
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 注入自定义JS
     //injectCustomJs();
 });
@@ -49,7 +49,7 @@ function injectCustomJs(jsPath) {
     temp.setAttribute('type', 'text/javascript');
     // 获得的地址类似：chrome-extension://ihcokhadfjfchaeagdoclpnjdiokfakg/js/inject.js
     temp.src = chrome.extension.getURL(jsPath);
-    temp.onload = function() {
+    temp.onload = function () {
         // 放在页面不好看，执行完后移除掉
         this.parentNode.removeChild(this);
     };
@@ -57,7 +57,7 @@ function injectCustomJs(jsPath) {
 }
 
 // 接收来自后台的消息
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     kadSyncConfig.enabledSync = true;
     console.log('收到来自 ' + (sender.tab ? "content-script(" + sender.tab.url + ")" : "popup或者background") + ' 的消息：', request);
     if (request.cmd == 'update_font_size') {
@@ -73,24 +73,28 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 // 主动发送消息给后台
 // 要演示此功能，请打开控制台主动执行sendMessageToBackground()
 function sendMessageToBackground(message) {
-    chrome.runtime.sendMessage({ greeting: message || '你好，我是content-script呀，我主动发消息给后台！' }, function(response) {
+    chrome.runtime.sendMessage({
+        greeting: message || '你好，我是content-script呀，我主动发消息给后台！'
+    }, function (response) {
         tip('收到来自后台的回复：' + response);
     });
 }
 
 // 监听长连接
-chrome.runtime.onConnect.addListener(function(port) {
+chrome.runtime.onConnect.addListener(function (port) {
     console.log(port);
     if (port.name == 'test-connect') {
-        port.onMessage.addListener(function(msg) {
+        port.onMessage.addListener(function (msg) {
             console.log('收到长连接消息：', msg);
             tip('收到长连接消息：' + JSON.stringify(msg));
-            if (msg.question == '你是谁啊？') port.postMessage({ answer: '我是你爸！' });
+            if (msg.question == '你是谁啊？') port.postMessage({
+                answer: '我是你爸！'
+            });
         });
     }
 });
 
-window.addEventListener("message", function(e) {
+window.addEventListener("message", function (e) {
     // console.log('收到消息：', e.data);
     if (e.data && e.data.cmd == 'invoke') {
         eval('(' + e.data.code + ')');
@@ -101,7 +105,7 @@ window.addEventListener("message", function(e) {
 }, false);
 
 function initSyncPop() {
-    chrome.storage.sync.get(kadSyncConfig.envConfig, function(items) {
+    chrome.storage.sync.get(kadSyncConfig.envConfig, function (items) {
         Object.assign(kadSyncConfig.envConfig, items);
 
         if (!kadSyncConfig.syncData || kadSyncConfig.syncData.resData.Total == 0) {
@@ -153,7 +157,7 @@ function initSyncPop() {
                 for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
                     var element = kadSyncConfig.syncData.resData.Rows[i];
                     contentHtml += '<input type="checkbox" value="' + element.DictID + '" name="choose-sync-data" id="syncdata-' + element.DictID + '">' +
-                        '<label for="syncdata-' + element.DictID + '">' + element.DictID + '</label>';
+                        '<label for="syncdata-' + element.DictID + '" title="' + element.DictID + '">' + element.DictID + '</label>';
                 }
                 break;
             case 1:
@@ -167,7 +171,7 @@ function initSyncPop() {
                 for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
                     var element = kadSyncConfig.syncData.resData.Rows[i];
                     contentHtml += '<input type="checkbox" value="' + element.Id + '" name="choose-sync-data" id="syncdata-' + element.Id + '">' +
-                        '<label for="syncdata-' + element.Id + '">' + element.Id + '</label>';
+                        '<label for="syncdata-' + element.Id + '" title="' + element.Id + '">' + element.Id + '</label>';
                 }
                 break;
             case 8:
@@ -181,7 +185,7 @@ function initSyncPop() {
                 for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
                     var element = kadSyncConfig.syncData.resData.Rows[i];
                     contentHtml += '<input type="checkbox" value="' + element.Id + '" name="choose-sync-data" id="syncdata-' + element.Id + '">' +
-                        '<label for="syncdata-' + element.Id + '">' + element.Id + '</label>';
+                        '<label for="syncdata-' + element.Id + '" title="' + element.Id + '">' + element.Id + '</label>';
                 }
                 break;
             case 15:
@@ -195,7 +199,7 @@ function initSyncPop() {
                 for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
                     var element = kadSyncConfig.syncData.resData.Rows[i];
                     contentHtml += '<input type="checkbox" value="' + element.Id + '" name="choose-sync-data" id="syncdata-' + element.Id + '">' +
-                        '<label for="syncdata-' + element.Id + '">' + element.Id + '</label>';
+                        '<label for="syncdata-' + element.Id + '" title="' + element.Id + '">' + element.Id + '</label>';
                 }
                 break;
             default:
@@ -210,20 +214,20 @@ function initSyncPop() {
             area: ['600px', '350px'], //宽高
             content: contentHtml,
             btn: btnArr,
-            yes: function() {
+            yes: function () {
                 return syncData(btn1SyncDomain, syncUrlIndex);
             },
-            btn2: function() {
+            btn2: function () {
                 if (btnArr.length == 3) {
                     return syncData(btn2SyncDomain, syncUrlIndex);
                 } else {
                     layer.msg('取消同步');
                 }
             },
-            btn3: function() {
+            btn3: function () {
                 layer.msg('取消同步');
             },
-            cancel: function() {
+            cancel: function () {
                 layer.msg('关闭同步窗');
             },
             btnAlign: 'c'
@@ -250,7 +254,7 @@ function syncData(syncDomian, syncUrlIndex) {
         cache: false,
         contentType: "application/json; charset=utf-8",
         dataType: "json"
-    }).done(function(data) {
+    }).done(function (data) {
         kadSyncConfig.loadingIndex = layer.load();
         var syncResultArr = [];
         for (var i = 0; i < allCheckedInputs.length; i++) {
@@ -259,7 +263,7 @@ function syncData(syncDomian, syncUrlIndex) {
             switch (syncUrlIndex) {
                 //字典
                 case 0:
-                    syncDict(syncDomian, element.value, function(syncResult) {
+                    syncDict(syncDomian, element.value, function (syncResult) {
                         syncResultArr.push(syncResult);
                         finishSync(allCheckedInputs, syncResultArr);
                     });
@@ -271,7 +275,7 @@ function syncData(syncDomian, syncUrlIndex) {
                 case 5:
                 case 6:
                 case 7:
-                    syncLayout(syncDomian, syncUrlIndex, element.value, function(syncResult) {
+                    syncLayout(syncDomian, syncUrlIndex, element.value, function (syncResult) {
                         syncResultArr.push(syncResult);
                         finishSync(allCheckedInputs, syncResultArr);
                     });
@@ -283,7 +287,7 @@ function syncData(syncDomian, syncUrlIndex) {
                 case 12:
                 case 13:
                 case 14:
-                    syncWidget(syncDomian, syncUrlIndex, element.value, function(syncResult) {
+                    syncWidget(syncDomian, syncUrlIndex, element.value, function (syncResult) {
                         syncResultArr.push(syncResult);
                         finishSync(allCheckedInputs, syncResultArr);
                     });
@@ -295,7 +299,7 @@ function syncData(syncDomian, syncUrlIndex) {
                 case 19:
                 case 20:
                 case 21:
-                    syncAdPlace(syncDomian, syncUrlIndex, element.value, function(syncResult) {
+                    syncAdPlace(syncDomian, syncUrlIndex, element.value, function (syncResult) {
                         syncResultArr.push(syncResult);
                         finishSync(allCheckedInputs, syncResultArr);
                     });
@@ -305,10 +309,10 @@ function syncData(syncDomian, syncUrlIndex) {
                     break;
             }
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('请先登录此环境', {
             time: 2000,
-        }, function() {
+        }, function () {
             window.open(syncDomian);
         });
     });
@@ -346,7 +350,9 @@ function finishSync(checkedArr, syncResultArr) {
             str += `${failedArr.join('、')}同步失败，具体结果请查看console`;
         }
         layer.close(kadSyncConfig.loadingIndex);
-        layer.msg(str, { time: 5000 });
+        layer.msg(str, {
+            time: 5000
+        });
         console.log('同步结果如下:');
         console.log(syncResultArr);
     }
@@ -360,7 +366,21 @@ function finishSync(checkedArr, syncResultArr) {
  * @param {string} key 字典编码 
  */
 function syncDict(syncDomian, key, successCallback) {
-    var dictQueryPostData = { "filters": [{ "whereType": "equal", "field": "DictID", "value": key }], "sorts": [{ "field": "DictID", "isAsc": false }], "dbKey": null, "entityType": null, "page": 1, "pageSize": 1 };
+    var dictQueryPostData = {
+        "filters": [{
+            "whereType": "equal",
+            "field": "DictID",
+            "value": key
+        }],
+        "sorts": [{
+            "field": "DictID",
+            "isAsc": false
+        }],
+        "dbKey": null,
+        "entityType": null,
+        "page": 1,
+        "pageSize": 1
+    };
     $.ajax({
         type: "post",
         url: "/Config/DictConfig/Query",
@@ -368,7 +388,7 @@ function syncDict(syncDomian, key, successCallback) {
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(dictRes) {
+    }).done(function (dictRes) {
         if (dictRes && dictRes.Total > 0) {
             $.ajax({
                 type: "post",
@@ -377,30 +397,32 @@ function syncDict(syncDomian, key, successCallback) {
                 contentType: "application/json; charset=utf-8",
                 cache: false,
                 dataType: "json"
-            }).done(function(existDictRes) {
+            }).done(function (existDictRes) {
                 if (existDictRes && existDictRes.Total > 0) {
                     $.ajax({
                         type: "post",
                         url: syncDomian + "/Config/DictConfig/Delete",
-                        data: JSON.stringify({ dictID: key }),
+                        data: JSON.stringify({
+                            dictID: key
+                        }),
                         contentType: "application/json; charset=utf-8",
                         cache: false,
                         dataType: "json"
-                    }).done(function(delRes) {
+                    }).done(function (delRes) {
                         initAddDictData(syncDomian, dictRes.Rows[0], key, successCallback);
-                    }).fail(function(jqXHR) {
+                    }).fail(function (jqXHR) {
                         layer.msg('同步出现异常，请查看console');
                         console.error(jqXHR);
                     })
                 } else {
                     initAddDictData(syncDomian, dictRes.Rows[0], key, successCallback);
                 }
-            }).fail(function(jqXHR) {
+            }).fail(function (jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             });
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     });
@@ -414,11 +436,18 @@ function syncDict(syncDomian, key, successCallback) {
  * @param {string} key 
  */
 function initAddDictData(syncDomian, dictResult, key, successCallback) {
-    var newDictPostData = { "DictID": dictResult.DictID, "DictType": dictResult.DictType, "Type": dictResult.Type, "GroupDesc": "普通", "ImplementType": dictResult.ImplementType, "DictDesc": dictResult.DictDesc };
+    var newDictPostData = {
+        "DictID": dictResult.DictID,
+        "DictType": dictResult.DictType,
+        "Type": dictResult.Type,
+        "GroupDesc": "普通",
+        "ImplementType": dictResult.ImplementType,
+        "DictDesc": dictResult.DictDesc
+    };
     if (dictResult.Type == 1) {
         newDictPostData.GroupDesc = '树形';
     }
-    addDict(syncDomian, newDictPostData, function() {
+    addDict(syncDomian, newDictPostData, function () {
         var dictDetailQueryPostData = {
             "filters": [{
                 "field": "DictId",
@@ -439,18 +468,28 @@ function initAddDictData(syncDomian, dictResult, key, successCallback) {
             cache: false,
             contentType: "application/json; charset=utf-8",
             dataType: "json"
-        }).done(function(response) {
+        }).done(function (response) {
             if (response.Total > 0) {
                 var dictItemConfigIndex = 'index-' + new Date().getTime().toString(); //简单保证下异步设置唯一的字典
                 kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] = 0;
                 kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex] = 0;
-                addDictItem(syncDomian, response.Rows, dictItemConfigIndex, function() {
-                    successCallback({ Id: key, Res: { Result: true } });
+                addDictItem(syncDomian, response.Rows, dictItemConfigIndex, function () {
+                    successCallback({
+                        Id: key,
+                        Res: {
+                            Result: true
+                        }
+                    });
                 });
             } else {
-                successCallback({ Id: key, Res: { Result: true } })
+                successCallback({
+                    Id: key,
+                    Res: {
+                        Result: true
+                    }
+                })
             }
-        }).fail(function(jqXHR) {
+        }).fail(function (jqXHR) {
             layer.msg('同步出现异常，请查看console');
             console.error(jqXHR);
         });
@@ -473,11 +512,11 @@ function addDict(syncDomian, postData, callback) {
         data: JSON.stringify(postData),
         contentType: "application/json; charset=utf-8",
         dataType: "json"
-    }).done(function(data) {
-        if (callback && typeof(callback) === 'function') {
+    }).done(function (data) {
+        if (callback && typeof (callback) === 'function') {
             callback(data);
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     });
@@ -513,7 +552,7 @@ function addDictItem(syncDomian, dictArr, dictItemConfigIndex, callback) {
             data: JSON.stringify(postData),
             contentType: "application/json; charset=utf-8",
             dataType: "json"
-        }).done(function(data) {
+        }).done(function (data) {
             kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex] += 1;
             if (dict.children && dict.children.length > 0) {
                 addDictItem(syncDomian, dict.children, dictItemConfigIndex, callback)
@@ -523,7 +562,7 @@ function addDictItem(syncDomian, dictArr, dictItemConfigIndex, callback) {
                     callback();
                 }
             }
-        }).fail(function(jqXHR) {
+        }).fail(function (jqXHR) {
             layer.msg('同步出现异常，请查看console');
             console.error(jqXHR);
         });
@@ -564,7 +603,9 @@ function syncLayout(syncDomian, syncUrlIndex, key, successCallback) {
             getFormDataUrl = '/CMS/WSLayout/GetFormData';
             break;
     }
-    var layoutQueryPostData = { "Id": key };
+    var layoutQueryPostData = {
+        "Id": key
+    };
     $.ajax({
         type: "post",
         url: getFormDataUrl,
@@ -572,7 +613,7 @@ function syncLayout(syncDomian, syncUrlIndex, key, successCallback) {
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(layoutRes) {
+    }).done(function (layoutRes) {
         if (layoutRes) {
             $.ajax({
                 type: "post",
@@ -581,7 +622,7 @@ function syncLayout(syncDomian, syncUrlIndex, key, successCallback) {
                 contentType: "application/json; charset=utf-8",
                 cache: false,
                 dataType: "json"
-            }).done(function(existLayoutRes) {
+            }).done(function (existLayoutRes) {
                 if (existLayoutRes) {
                     //修改
                     addOrEditLayout(syncDomian, syncUrlIndex, layoutRes, 1, successCallback);
@@ -589,14 +630,14 @@ function syncLayout(syncDomian, syncUrlIndex, key, successCallback) {
                     //新增
                     addOrEditLayout(syncDomian, syncUrlIndex, layoutRes, 0, successCallback);
                 }
-            }).fail(function(jqXHR) {
+            }).fail(function (jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             })
         } else {
             layer.msg(`未找到布局模板${key}`);
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
@@ -681,13 +722,16 @@ function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type, successCall
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(addLayoutRes) {
+    }).done(function (addLayoutRes) {
         // {"Result":true,"Message":"保存成功！","Rows":null,"Total":0}
         if (!addLayoutRes.Result) {
             layer.msg('同步失败，' + addLayoutRes.Message);
         }
-        successCallback({ Id: postData.Id, Res: addLayoutRes });
-    }).fail(function(jqXHR) {
+        successCallback({
+            Id: postData.Id,
+            Res: addLayoutRes
+        });
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
@@ -728,7 +772,9 @@ function syncWidget(syncDomian, syncUrlIndex, key, successCallback) {
             getFormDataUrl = '/CMS/WSWidget/GetFormData';
             break;
     }
-    var widgetQueryPostData = { "Id": key };
+    var widgetQueryPostData = {
+        "Id": key
+    };
     $.ajax({
         type: "post",
         url: getFormDataUrl,
@@ -736,7 +782,7 @@ function syncWidget(syncDomian, syncUrlIndex, key, successCallback) {
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(widgetRes) {
+    }).done(function (widgetRes) {
         if (widgetRes) {
             $.ajax({
                 type: "post",
@@ -745,17 +791,17 @@ function syncWidget(syncDomian, syncUrlIndex, key, successCallback) {
                 contentType: "application/json; charset=utf-8",
                 cache: false,
                 dataType: "json"
-            }).done(function(existWidgetRes) {
-                (function(initPicCallback) {
+            }).done(function (existWidgetRes) {
+                (function (initPicCallback) {
                     if (widgetRes.Pic && widgetRes.Pic.length > 0) {
-                        uploadImgToManage(syncDomian, widgetRes.Pic, function(newPicUrl) {
+                        uploadImgToManage(syncDomian, widgetRes.Pic, function (newPicUrl) {
                             widgetRes.Pic = newPicUrl;
                             initPicCallback();
                         })
                     } else {
                         initPicCallback();
                     }
-                })(function() {
+                })(function () {
                     if (existWidgetRes) {
                         //修改
                         addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 1, successCallback);
@@ -764,14 +810,14 @@ function syncWidget(syncDomian, syncUrlIndex, key, successCallback) {
                         addOrEditWidget(syncDomian, syncUrlIndex, widgetRes, 0, successCallback);
                     }
                 });
-            }).fail(function(jqXHR) {
+            }).fail(function (jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             })
         } else {
             layer.msg(`未找到部件${key}`);
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
@@ -862,13 +908,16 @@ function addOrEditWidget(syncDomian, syncUrlIndex, sourceData, type, successCall
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(addWidgetRes) {
+    }).done(function (addWidgetRes) {
         // {"Result":true,"Message":"保存成功！","Rows":null,"Total":0}
         if (!addWidgetRes.Result) {
             layer.msg('同步失败，' + addWidgetRes.Message);
         }
-        successCallback({ Id: postData.Id, Res: addWidgetRes });
-    }).fail(function(jqXHR) {
+        successCallback({
+            Id: postData.Id,
+            Res: addWidgetRes
+        });
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
@@ -909,7 +958,9 @@ function syncAdPlace(syncDomian, syncUrlIndex, key, successCallback) {
             getFormDataUrl = '/CMS/WSAdPlace/GetFormData';
             break;
     }
-    var adPlaceQueryPostData = { "Id": key };
+    var adPlaceQueryPostData = {
+        "Id": key
+    };
     $.ajax({
         type: "post",
         url: getFormDataUrl,
@@ -917,7 +968,7 @@ function syncAdPlace(syncDomian, syncUrlIndex, key, successCallback) {
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(adPlaceRes) {
+    }).done(function (adPlaceRes) {
         console.log(`adPlaceRes:`);
         console.log(adPlaceRes);
         if (adPlaceRes) {
@@ -928,32 +979,42 @@ function syncAdPlace(syncDomian, syncUrlIndex, key, successCallback) {
                 contentType: "application/json; charset=utf-8",
                 cache: false,
                 dataType: "json"
-            }).done(function(existAdPlaceRes) {
+            }).done(function (existAdPlaceRes) {
                 console.log(`existAdPlaceRes:`);
                 console.log(existAdPlaceRes);
                 if (existAdPlaceRes) {
                     //修改
-                    addOrEditAdPlace(syncDomian, syncUrlIndex, adPlaceRes, 1, function() {
-                        syncAd(syncDomian, syncUrlIndex, key, function() {
-                            successCallback({ Id: key, Res: { Result: true } });
+                    addOrEditAdPlace(syncDomian, syncUrlIndex, adPlaceRes, 1, function () {
+                        syncAd(syncDomian, syncUrlIndex, key, function () {
+                            successCallback({
+                                Id: key,
+                                Res: {
+                                    Result: true
+                                }
+                            });
                         });
                     });
                 } else {
                     //新增
-                    addOrEditAdPlace(syncDomian, syncUrlIndex, adPlaceRes, 0, function() {
-                        syncAd(syncDomian, syncUrlIndex, key, function() {
-                            successCallback({ Id: key, Res: { Result: true } });
+                    addOrEditAdPlace(syncDomian, syncUrlIndex, adPlaceRes, 0, function () {
+                        syncAd(syncDomian, syncUrlIndex, key, function () {
+                            successCallback({
+                                Id: key,
+                                Res: {
+                                    Result: true
+                                }
+                            });
                         });
                     });
                 }
-            }).fail(function(jqXHR) {
+            }).fail(function (jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             })
         } else {
             layer.msg(`未找到广告位${key}`);
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
@@ -1034,7 +1095,7 @@ function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCal
         "Height": sourceData.Height,
         "IsEnable": sourceData.IsEnable
     };
-    (function(initWidgetCallback) {
+    (function (initWidgetCallback) {
         if (postData.WidgetId && postData.WidgetId.length > 0) {
             var widgetUrlIndex = 0;
             switch (syncUrlIndex) {
@@ -1060,14 +1121,14 @@ function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCal
                     widgetUrlIndex = 14;
                     break;
             }
-            syncWidget(syncDomian, widgetUrlIndex, postData.WidgetId, function() {
+            syncWidget(syncDomian, widgetUrlIndex, postData.WidgetId, function () {
                 console.log(`广告位关联广告部件${postData.WidgetId}同步完成`);
                 initWidgetCallback();
             });
         } else {
             initWidgetCallback();
         }
-    })(function() {
+    })(function () {
         $.ajax({
             type: "post",
             url: syncDomian + url,
@@ -1075,13 +1136,16 @@ function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCal
             contentType: "application/json; charset=utf-8",
             cache: false,
             dataType: "json"
-        }).done(function(addAdPlaceRes) {
+        }).done(function (addAdPlaceRes) {
             // {"Result":true,"Message":"保存成功！","Rows":null,"Total":0}
             if (!addAdPlaceRes.Result) {
                 layer.msg('同步失败，' + addAdPlaceRes.Message);
             }
-            successCallback({ Id: postData.Id, Res: addAdPlaceRes });
-        }).fail(function(jqXHR) {
+            successCallback({
+                Id: postData.Id,
+                Res: addAdPlaceRes
+            });
+        }).fail(function (jqXHR) {
             layer.msg('同步出现异常，请查看console');
             console.error(jqXHR);
         })
@@ -1098,7 +1162,24 @@ function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCal
 function syncAd(syncDomian, syncUrlIndex, key, successCallback) {
     // {"filters":[{"whereType":"equal","field":"IsDelete","value":"0"},{"whereType":"equal","field":"AdPlaceId","value":"adp_117_preview_1_0"},{"field":"PlatForm","whereType":"Equal","value":"pc"}],"sorts":[{"field":"ADSort","isAsc":true},{"field":"CreateTime","isAsc":false}],"dbKey":null,"entityType":null,"page":1,"pageSize":20}
     var adQueryUrl = '/CMS/Ad/Query';
-    var adQueryPostData = { "filters": [{ "whereType": "equal", "field": "AdPlaceId", "value": key }], "sorts": [{ "field": "ADSort", "isAsc": true }, { "field": "CreateTime", "isAsc": false }], "dbKey": null, "entityType": null, "page": 1, "pageSize": 50 };
+    var adQueryPostData = {
+        "filters": [{
+            "whereType": "equal",
+            "field": "AdPlaceId",
+            "value": key
+        }],
+        "sorts": [{
+            "field": "ADSort",
+            "isAsc": true
+        }, {
+            "field": "CreateTime",
+            "isAsc": false
+        }],
+        "dbKey": null,
+        "entityType": null,
+        "page": 1,
+        "pageSize": 50
+    };
     $.ajax({
         type: "post",
         url: adQueryUrl,
@@ -1106,7 +1187,7 @@ function syncAd(syncDomian, syncUrlIndex, key, successCallback) {
         contentType: "application/json; charset=utf-8",
         cache: false,
         dataType: "json"
-    }).done(function(adRes) {
+    }).done(function (adRes) {
         console.log(`adRes:`);
         console.log(adRes);
         if (adRes && adRes.Total > 0) {
@@ -1117,11 +1198,11 @@ function syncAd(syncDomian, syncUrlIndex, key, successCallback) {
                 contentType: "application/json; charset=utf-8",
                 cache: false,
                 dataType: "json"
-            }).done(function(existAdRes) {
+            }).done(function (existAdRes) {
                 console.log(`existAdRes:`);
                 console.log(existAdRes);
                 var addAdResultArr = [];
-                (function(finishAddAdCallback) {
+                (function (finishAddAdCallback) {
                     adRes.Rows.forEach((adInfo, i) => {
                         var thatExistAds = [];
                         if (existAdRes && existAdRes.Total > 0) {
@@ -1129,31 +1210,36 @@ function syncAd(syncDomian, syncUrlIndex, key, successCallback) {
                         }
                         if (thatExistAds.length > 0) {
                             //修改
-                            addOrEditAd(syncDomian, syncUrlIndex, adInfo, 1, function(syncResult) {
+                            addOrEditAd(syncDomian, syncUrlIndex, adInfo, 1, function (syncResult) {
                                 addAdResultArr.push(syncResult);
                                 finishAddAdCallback();
                             });
                         } else {
                             //新增
-                            addOrEditAd(syncDomian, syncUrlIndex, adInfo, 0, function(syncResult) {
+                            addOrEditAd(syncDomian, syncUrlIndex, adInfo, 0, function (syncResult) {
                                 addAdResultArr.push(syncResult);
                                 finishAddAdCallback();
                             });
                         }
                     });
-                })(function() {
+                })(function () {
                     if (adRes.Rows.length == addAdResultArr.length) {
-                        successCallback({ Id: key, Res: { Result: true } });
+                        successCallback({
+                            Id: key,
+                            Res: {
+                                Result: true
+                            }
+                        });
                     }
                 });
-            }).fail(function(jqXHR) {
+            }).fail(function (jqXHR) {
                 layer.msg('同步出现异常，请查看console');
                 console.error(jqXHR);
             })
         } else {
             layer.msg(`未找到广告位${key}`);
         }
-    }).fail(function(jqXHR) {
+    }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
         console.error(jqXHR);
     })
@@ -1239,16 +1325,16 @@ function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback
         "ADSort": sourceData.ADSort,
         "IsEnable": sourceData.IsEnable == 1 ? true : false
     };
-    (function(initPicCallback) {
+    (function (initPicCallback) {
         if (postData.Pic && postData.Pic.length > 0) {
-            uploadImgToManage(syncDomian, postData.Pic, function(newPicUrl) {
+            uploadImgToManage(syncDomian, postData.Pic, function (newPicUrl) {
                 postData.Pic = newPicUrl;
                 initPicCallback();
             })
         } else {
             initPicCallback();
         }
-    })(function() {
+    })(function () {
         $.ajax({
             type: "post",
             url: syncDomian + url,
@@ -1256,13 +1342,16 @@ function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback
             contentType: "application/json; charset=utf-8",
             cache: false,
             dataType: "json"
-        }).done(function(addAdRes) {
+        }).done(function (addAdRes) {
             // {"Result":true,"Message":"保存成功！","Rows":null,"Total":0}
             if (!addAdRes.Result) {
                 layer.msg('同步失败，' + addAdRes.Message);
             }
-            successCallback({ Id: postData.Id, Res: addAdRes });
-        }).fail(function(jqXHR) {
+            successCallback({
+                Id: postData.Id,
+                Res: addAdRes
+            });
+        }).fail(function (jqXHR) {
             layer.msg('同步出现异常，请查看console');
             console.error(jqXHR);
         })
@@ -1282,7 +1371,7 @@ function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback
  */
 function uploadImgToManage(syncDomian, onlineImgUrl, successCallback, errorCallback) {
     if (!XMLHttpRequest.prototype.sendAsBinary) {
-        XMLHttpRequest.prototype.sendAsBinary = function(sData) {
+        XMLHttpRequest.prototype.sendAsBinary = function (sData) {
             var nBytes = sData.length,
                 ui8Data = new Uint8Array(nBytes);
             for (var nIdx = 0; nIdx < nBytes; nIdx++) {
@@ -1296,11 +1385,11 @@ function uploadImgToManage(syncDomian, onlineImgUrl, successCallback, errorCallb
     var downloadXHR = new XMLHttpRequest();
     downloadXHR.open('GET', onlineImgUrl, true);
     downloadXHR.responseType = 'blob'; //"arraybuffer";
-    downloadXHR.onload = function() {
+    downloadXHR.onload = function () {
         if (this.status == 200) {
             var reader = new window.FileReader();
             reader.readAsDataURL(this.response);
-            reader.onloadend = function() {
+            reader.onloadend = function () {
                 var base64data = reader.result;
                 //创建一个ajax请求：
                 var uploadUrl = '/File/Upload';
@@ -1313,13 +1402,13 @@ function uploadImgToManage(syncDomian, onlineImgUrl, successCallback, errorCallb
                 var data = base64data.replace(/data:([\s\S]*);base64,/, '');
                 uploadXHR.sendAsBinary(`\r\n\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"Filename\"\r\n\r\n${uploadImgFileName}\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"urlWithFileName\"\r\n\r\nfalse\r\n--${boundary}\r\nContent-Disposition: form-data; name=\"Filedata\"; filename=\"${uploadImgFileName}\"\r\nContent-Type: application/octet-stream\r\n\r\n${atob(data)}\n--${boundary}\r\nContent-Disposition: form-data; name=\"Upload\"\r\n\r\nSubmit Query\r\n--${boundary}--`);
                 // 上传进度
-                uploadXHR.upload.onprogress = function(event) {
+                uploadXHR.upload.onprogress = function (event) {
                     if (event.lengthComputable) {
                         console.log((event.loaded / event.total) * 100);
                     }
                 };
                 //成功和失败回调 
-                uploadXHR.onreadystatechange = function() {
+                uploadXHR.onreadystatechange = function () {
                     if (this.readyState == 4) {
                         if (this.status == 200) {
                             successCallback(this.responseText);
@@ -1351,7 +1440,7 @@ function uploadImgToManage2(syncDomian, onlineImgUrl, successCallback, errorCall
     var downloadXHR = new XMLHttpRequest();
     downloadXHR.open('GET', onlineImgUrl, true);
     downloadXHR.responseType = 'blob';
-    downloadXHR.onload = function() {
+    downloadXHR.onload = function () {
         if (this.status == 200) {
             var blob = this.response;
             var fileNameExt = onlineImgUrl.substring(onlineImgUrl.lastIndexOf("."), onlineImgUrl.length);
@@ -1360,7 +1449,7 @@ function uploadImgToManage2(syncDomian, onlineImgUrl, successCallback, errorCall
             form.append("uploadImg", blob, imgFileName);
             var uploadXHR = new XMLHttpRequest();
             uploadXHR.open('POST', syncDomian + 'File/Upload');
-            uploadXHR.onloadend = function() {
+            uploadXHR.onloadend = function () {
                 if (this.status == 200) {
                     successCallback(this.responseText.replace('?filename=' + imgFileName, ''));
                 } else {
