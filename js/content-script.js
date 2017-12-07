@@ -56,6 +56,14 @@ function injectCustomJs(jsPath) {
     document.body.appendChild(temp);
 }
 
+function initKadSyncEnvConfigFromContentScript(request) {
+    var syncConfigKey = "kadSyncEnvConfig";
+    if (request && request.key === syncConfigKey) {
+        var kadSyncEnvConfig = request.data;
+        window.sessionStorage && window.sessionStorage.setItem(syncConfigKey, JSON.stringify(kadSyncEnvConfig));
+    }
+}
+
 // 接收来自后台的消息
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     kadSyncConfig.enabledSync = true;
@@ -65,7 +73,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         ele.innerHTML = `* {font-size: ${request.size}px !important;}`;
         document.head.appendChild(ele);
     } else {
-        tip(JSON.stringify(request));
+        initKadSyncEnvConfigFromContentScript(request);
+        // layer.msg(JSON.stringify(request));
         sendResponse('我收到你的消息了：' + JSON.stringify(request));
     }
 });
@@ -76,7 +85,7 @@ function sendMessageToBackground(message) {
     chrome.runtime.sendMessage({
         greeting: message || '你好，我是content-script呀，我主动发消息给后台！'
     }, function (response) {
-        tip('收到来自后台的回复：' + response);
+        // layer.msg('收到来自后台的回复：' + response);
     });
 }
 
@@ -86,7 +95,7 @@ chrome.runtime.onConnect.addListener(function (port) {
     if (port.name == 'test-connect') {
         port.onMessage.addListener(function (msg) {
             console.log('收到长连接消息：', msg);
-            tip('收到长连接消息：' + JSON.stringify(msg));
+            // layer.msg('收到长连接消息：' + JSON.stringify(msg));
             if (msg.question == '你是谁啊？') port.postMessage({
                 answer: '我是你爸！'
             });

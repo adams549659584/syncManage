@@ -7437,6 +7437,18 @@
                 dataType: 'json',
                 contentType: 'application/json',
                 beforeSend: function() {
+                    if (window.sessionStorage) {
+                        var configStr = window.sessionStorage.getItem("kadSyncEnvConfig");
+                        if (configStr) {
+                            var kadSyncEnvConfig = JSON.parse(configStr);
+                            if (kadSyncEnvConfig.enabledModifyParams) {
+                                var promptResult = prompt('可修改如下请求参数:',this.data);
+                                if (promptResult) {
+                                    this.data = promptResult;
+                                }
+                            }
+                        }
+                    }
                     if (g.hasBind('loading')) {
                         g.trigger('loading');
                     } else {
