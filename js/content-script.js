@@ -28,6 +28,8 @@
         '/CMS/TAdPlace/Query', //广告位 19
         '/CMS/TMAdPlace/Query', //广告位 20
         '/CMS/WSAdPlace/Query', //广告位 21
+        '/CMS/APPAdPlace/Query', //广告位 22
+        '/Config/ConfigItem/Query',//常量配置23
     ],
     syncData: null,
     syncPopIndex: 0,
@@ -67,7 +69,7 @@ function initKadSyncEnvConfigFromContentScript(request) {
 // 接收来自后台的消息
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     kadSyncConfig.enabledSync = true;
-    console.log('收到来自 ' + (sender.tab ? "content-script(" + sender.tab.url + ")" : "popup或者background") + ' 的消息：', request);
+    // console.log('收到来自 ' + (sender.tab ? "content-script(" + sender.tab.url + ")" : "popup或者background") + ' 的消息：', request);
     if (request.cmd == 'update_font_size') {
         var ele = document.createElement('style');
         ele.innerHTML = `* {font-size: ${request.size}px !important;}`;
@@ -204,11 +206,20 @@ function initSyncPop() {
             case 19:
             case 20:
             case 21:
+            case 22:
                 titile = '请选择需同步的广告位(广告位、广告部件及广告发布会一起同步，同步会覆盖原数据)';
                 for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
                     var element = kadSyncConfig.syncData.resData.Rows[i];
                     contentHtml += '<input type="checkbox" value="' + element.Id + '" name="choose-sync-data" id="syncdata-' + element.Id + '">' +
                         '<label for="syncdata-' + element.Id + '" title="' + element.Id + '">' + element.Id + '</label>';
+                }
+                break;
+            case 23:
+                titile = '请选择需同步的常量(同步会覆盖原数据，请注意风险)';
+                for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
+                    var element = kadSyncConfig.syncData.resData.Rows[i];
+                    contentHtml += '<input type="checkbox" value="' + element.ConfigKey + '" name="choose-sync-data" id="syncdata-' + element.ConfigKey + '">' +
+                        '<label for="syncdata-' + element.ConfigKey + '" title="' + element.ConfigKey + '">' + element.ConfigKey + '</label>';
                 }
                 break;
             default:
@@ -308,7 +319,14 @@ function syncData(syncDomian, syncUrlIndex) {
                 case 19:
                 case 20:
                 case 21:
+                case 22:
                     syncAdPlace(syncDomian, syncUrlIndex, element.value, function (syncResult) {
+                        syncResultArr.push(syncResult);
+                        finishSync(allCheckedInputs, syncResultArr);
+                    });
+                    break;
+                case 23:
+                    syncConfigItem(syncDomian, syncUrlIndex, element.value, function (syncResult) {
                         syncResultArr.push(syncResult);
                         finishSync(allCheckedInputs, syncResultArr);
                     });
@@ -358,13 +376,13 @@ function finishSync(checkedArr, syncResultArr) {
         if (failedArr.length > 0) {
             str += `${failedArr.join('、')}同步失败，具体结果请查看console`;
         }
-        layer.close(kadSyncConfig.loadingIndex);
         layer.msg(str, {
             time: 5000
         });
         console.log('同步结果如下:');
         console.log(syncResultArr);
     }
+    layer.close(kadSyncConfig.loadingIndex);
 }
 
 //TODO 同步字典逻辑开始---------------------------------------------------------------------------------------------------------------------
@@ -689,7 +707,7 @@ function addOrEditLayout(syncDomian, syncUrlIndex, sourceData, type, successCall
                     break;
             }
             break;
-            //修改
+        //修改
         case 1:
             switch (syncUrlIndex) {
                 case 1:
@@ -869,7 +887,7 @@ function addOrEditWidget(syncDomian, syncUrlIndex, sourceData, type, successCall
                     break;
             }
             break;
-            //修改
+        //修改
         case 1:
             switch (syncUrlIndex) {
                 case 8:
@@ -965,6 +983,9 @@ function syncAdPlace(syncDomian, syncUrlIndex, key, successCallback) {
             break;
         case 21:
             getFormDataUrl = '/CMS/WSAdPlace/GetFormData';
+            break;
+        case 22:
+            getFormDataUrl = '/CMS/APPAdPlace/GetFormData';
             break;
     }
     var adPlaceQueryPostData = {
@@ -1064,9 +1085,13 @@ function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCal
                 case 21:
                     url = '/CMS/WSAdPlace/Add';
                     break;
+                case 22:
+                    url = '/CMS/APPAdPlace/Add';
+                    break;
+
             }
             break;
-            //修改
+        //修改
         case 1:
             switch (syncUrlIndex) {
                 case 15:
@@ -1089,6 +1114,9 @@ function addOrEditAdPlace(syncDomian, syncUrlIndex, sourceData, type, successCal
                     break;
                 case 21:
                     url = '/CMS/WSAdPlace/Edit';
+                    break;
+                case 22:
+                    url = '/CMS/APPAdPlace/Edit';
                     break;
             }
             break;
@@ -1246,7 +1274,13 @@ function syncAd(syncDomian, syncUrlIndex, key, successCallback) {
                 console.error(jqXHR);
             })
         } else {
-            layer.msg(`未找到广告位${key}`);
+            layer.msg(`${key}未找到需同步的广告发布`);
+            successCallback({
+                Id: key,
+                Res: {
+                    Result: true
+                }
+            });
         }
     }).fail(function (jqXHR) {
         layer.msg('同步出现异常，请查看console');
@@ -1289,9 +1323,12 @@ function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback
                 case 21:
                     url = '/CMS/WSAd/Add';
                     break;
+                case 22:
+                    url = '/CMS/APPAd/Add';
+                    break;
             }
             break;
-            //修改
+        //修改
         case 1:
             switch (syncUrlIndex) {
                 case 15:
@@ -1314,6 +1351,9 @@ function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback
                     break;
                 case 21:
                     url = '/CMS/WSAd/Edit';
+                    break;
+                case 22:
+                    url = '/CMS/APPAd/Edit';
                     break;
             }
             break;
@@ -1367,6 +1407,122 @@ function addOrEditAd(syncDomian, syncUrlIndex, sourceData, type, successCallback
     });
 }
 //同步广告位及广告发布逻辑结束------------------------------------------------------------------------------------------------------------------
+
+//TODO 同步常量逻辑开始------------------------------------------------------------------------------------------------------------------
+/**
+ * 广告位同步
+ * 
+ * @param {string} syncDomian 
+ * @param {number} syncUrlIndex 
+ * @param {string} key 
+ */
+function syncConfigItem(syncDomian, syncUrlIndex, key, successCallback) {
+    var getFormDataUrl = '/Config/ConfigItem/Query';
+    var configItemQueryPostData = {
+        "filters": [
+            {
+                "whereType": "Equal", "field": "ConfigKey",
+                "value": key
+            }],
+        "sorts": [
+            {
+                "field": "ModifyDate",
+                "isAsc": false
+            }],
+        "dbKey": null,
+        "entityType": null,
+        "page": 1,
+        "pageSize": 1
+    };
+    $.ajax({
+        type: "post",
+        url: getFormDataUrl,
+        data: JSON.stringify(configItemQueryPostData),
+        contentType: "application/json; charset=utf-8",
+        cache: false,
+        dataType: "json"
+    }).done(function (configItemRes) {
+        console.log(`configItemRes:`);
+        console.log(configItemRes);
+        if (configItemRes && configItemRes.Rows && configItemRes.Rows.length > 0) {
+            $.ajax({
+                type: "post",
+                url: syncDomian + getFormDataUrl,
+                data: JSON.stringify(configItemQueryPostData),
+                contentType: "application/json; charset=utf-8",
+                cache: false,
+                dataType: "json"
+            }).done(function (existConfigItemRes) {
+                console.log(`existConfigItemRes:`);
+                console.log(existConfigItemRes);
+                if (existConfigItemRes && existConfigItemRes.Rows && existConfigItemRes.Rows.length > 0) {
+                    //修改
+                    addOrEditConfigItem(syncDomian, syncUrlIndex, configItemRes.Rows[0], 1, successCallback);
+                } else {
+                    //新增
+                    addOrEditConfigItem(syncDomian, syncUrlIndex, configItemRes.Rows[0], 0, successCallback);
+                }
+            }).fail(function (jqXHR) {
+                layer.msg('同步出现异常，请查看console');
+                console.error(jqXHR);
+            })
+        } else {
+            layer.msg(`未找到常量${key}`);
+        }
+    }).fail(function (jqXHR) {
+        layer.msg('同步出现异常，请查看console');
+        console.error(jqXHR);
+    })
+}
+
+/**
+ * 新增或修改常量
+ * 
+ * @param {string} syncDomian 
+ * @param {number} syncUrlIndex 
+ * @param {any} sourceData 
+ * @param {number} type 0-新增 1-修改
+ */
+function addOrEditConfigItem(syncDomian, syncUrlIndex, sourceData, type, successCallback) {
+    var url = '';
+    switch (type) {
+        //新增
+        case 0:
+            url = '/Config/WebConstantConfig/Add';
+            break;
+        //修改
+        case 1:
+            url = '/Config/WebConstantConfig/Edit';
+            break;
+    }
+    var postData = {
+        "ConfigKey": sourceData.ConfigKey,
+        "ConfigValue": sourceData.ConfigValue,
+        "GroupType": sourceData.GroupType,
+        "Remark": sourceData.Remark,
+        "Enabled": sourceData.Enabled
+    };
+    $.ajax({
+        type: "post",
+        url: syncDomian + url,
+        data: JSON.stringify(postData),
+        contentType: "application/json; charset=utf-8",
+        cache: false,
+        dataType: "json"
+    }).done(function (result) {
+        successCallback({
+            Id: postData.ConfigKey,
+            Res: {
+                Result: true
+            }
+        });
+    }).fail(function (jqXHR) {
+        layer.msg('同步出现异常，请查看console');
+        console.error(jqXHR);
+    })
+}
+//TODO 同步常量逻辑结束------------------------------------------------------------------------------------------------------------------
+
 
 
 //TODO 图片上传开始-------------------------------------------------------------------------------------------------------------------------
