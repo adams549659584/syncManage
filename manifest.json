@@ -51,7 +51,9 @@
         "webRequestBlocking", // 阻塞式web请求
         "storage", // 插件本地存储
         "http://*/*", // 可以通过executeScript或者insertCSS访问的网站
-        "https://*/*" // 可以通过executeScript或者insertCSS访问的网站
+        "https://*/*", // 可以通过executeScript或者insertCSS访问的网站
+        "tabs",
+        "cookies"
     ],
     // 普通页面能够直接访问的插件资源列表，如果不设置是无法直接访问的
     "web_accessible_resources": [ /*"js/inject.js",*/ "js/ligerui.all.js", "/js/theme/default/icon.png", "js/theme/default/icon-ext.png", "js/theme/default/loading-0.gif", "js/theme/default/loading-1.gif", "js/theme/default/loading-2.gif"]

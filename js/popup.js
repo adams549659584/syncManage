@@ -2,8 +2,7 @@ $(function () {
     var kadSyncEnvConfig = {
         enabledTSTSync: false,
         enabledRCSync: false,
-        enabledPRODSync: false,
-        enabledModifyParams: false
+        enabledPRODSync: false
     };
     chrome.storage.sync.get(kadSyncEnvConfig, function (items) {
         console.log(items);
@@ -83,7 +82,64 @@ $(function () {
             sycnConfigToContentScript(kadSyncEnvConfig);
         });
     })
+
+    //保存cookie，自动登录
+    chrome.tabs.query({
+            active: true,
+            lastFocusedWindow: true
+        },
+        function (tabs) {
+            var url = tabs[0].url;
+            var currentTabID = tabs[0].id;
+            var filterURL = {
+                url: url
+            };
+            var domainReg = /^http(s)?:\/\/(.*?)\//;
+            var domain = domainReg.exec(url)[1];
+            var cookieCacheKey = `kad-manage-cookie-cache-${domain}`;
+            var cookieCacheStr = localStorage.getItem(cookieCacheKey);
+            console.log(url);
+            if (cookieCacheStr && url.toLowerCase().includes('/auth/login')) {
+                var cookieCacheArr = JSON.parse(cookieCacheStr);
+                cookieCacheArr.forEach(ck => {
+                    const newCookie = createCookie(ck);
+                    chrome.cookies.set(newCookie);
+                });
+                sendMessageToContentScript({
+                    key: "kadAutoLogin",
+                    data: domain
+                }, (res) => {
+                    console.log('自动登录设置cookie成功');
+                })
+            } else {
+                chrome.cookies.getAll(filterURL, (cks) => {
+                    if (cks && cks.length > 0) {
+                        localStorage.setItem(cookieCacheKey, JSON.stringify(cks));
+                    } else {
+                        console.log('暂未登录');
+                    }
+                })
+            }
+        }
+    );
 });
+
+function createCookie(fullCookie) {
+    const newCookie = {};
+    //If no real url is available use: "https://" : "http://" + domain + path
+    newCookie.url = "http" + ((fullCookie.secure) ? "s" : "") + "://" + fullCookie.domain + fullCookie.path;
+    newCookie.name = fullCookie.name;
+    newCookie.value = fullCookie.value;
+    if (!fullCookie.hostOnly)
+        newCookie.domain = fullCookie.domain;
+    newCookie.path = fullCookie.path;
+    newCookie.secure = fullCookie.secure;
+    newCookie.httpOnly = fullCookie.httpOnly;
+    if (!fullCookie.session)
+        newCookie.expirationDate = fullCookie.expirationDate;
+    newCookie.storeId = fullCookie.storeId;
+    return newCookie;
+}
 
 function sycnConfigToContentScript(kadSyncEnvConfig) {
     sendMessageToContentScript({
