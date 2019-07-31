@@ -33,7 +33,9 @@
 
     '/CMS/KTMLayout/Query', //太安堂M布局模板 24
     '/CMS/KTMWidget/Query', //太安堂M内容部件 25
-    '/CMS/KTMAdPlace/Query' //广告位 26
+    '/CMS/KTMAdPlace/Query', //广告位 26
+
+    '/Config/DictItemConfig/Query' //字典项 27
   ],
   syncData: null,
   syncPopIndex: 0,
@@ -206,6 +208,32 @@ function initSyncPop() {
             '</label>'
         }
         break
+      //字典项
+      case 27:
+        titile = '请选择需同步的字典值编码(同步会覆盖原数据，请注意风险)'
+        for (var i = 0; i < kadSyncConfig.syncData.resData.Rows.length; i++) {
+          var element = kadSyncConfig.syncData.resData.Rows[i]
+          contentHtml +=
+            '<input type="checkbox" value="' +
+            element.DictValue +
+            '" name="choose-sync-data" id="syncdata-' +
+            element.DictValue +
+            '">' +
+            '<label for="syncdata-' +
+            element.DictValue +
+            '" title="' +
+            element.DictValue +
+            '(' +
+            element.DictText +
+            ')' +
+            '">' +
+            element.DictValue +
+            '(' +
+            element.DictText +
+            ')' +
+            '</label>'
+        }
+        break
       case 1:
       case 2:
       case 3:
@@ -374,6 +402,12 @@ function syncData(syncDomian, syncUrlIndex) {
               finishSync(allCheckedInputs, syncResultArr)
             })
             break
+          case 27:
+            syncDictItems(syncDomian, element.value, function(syncResult) {
+              syncResultArr.push(syncResult)
+              finishSync(allCheckedInputs, syncResultArr)
+            })
+            break
           case 1:
           case 2:
           case 3:
@@ -489,7 +523,7 @@ function finishSync(checkedArr, syncResultArr) {
 
 //TODO 同步字典逻辑开始---------------------------------------------------------------------------------------------------------------------
 /**
- * 从同步新字典配置到rc或正式
+ * 同步新字典配置到rc或正式
  *
  * @param {string} syncDomian 需同步到的域名
  * @param {string} key 字典编码
@@ -620,6 +654,7 @@ function initAddDictData(syncDomian, dictResult, key, successCallback) {
       dataType: 'json'
     })
       .done(function(response) {
+        //todo 字典项选择
         if (response.Total > 0) {
           var dictItemConfigIndex = 'index-' + new Date().getTime().toString() //简单保证下异步设置唯一的字典
           kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] = 0
@@ -720,6 +755,64 @@ function addDictItem(syncDomian, dictArr, dictItemConfigIndex, callback) {
         console.error(jqXHR)
       })
   })
+}
+
+/**
+ * 同步新字典项配置到rc或正式
+ *
+ * @param {string} syncDomian 需同步到的域名
+ * @param {string} key 字典值编码
+ */
+function syncDictItems(syncDomian, key, successCallback) {
+  var rows = kadSyncConfig.syncData.resData.Rows.filter(
+    x => x.DictValue === key
+  )
+  var thatDictItem = rows[0]
+  ajaxPost(syncDomian + '/Config/DictItemConfig/Query', {
+    filters: [
+      { whereType: 'Equal', field: 'DictValue', value: key },
+      { field: 'DictID', whereType: 'Equal', value: thatDictItem.DictID }
+    ],
+    sorts: [{ field: 'OrderNo', isAsc: true }],
+    Type: 0,
+    dbKey: null,
+    entityType: null,
+    page: 1,
+    pageSize: 1
+  })
+    .done(function(existDictItemRes) {
+      var initAddDictItem = function() {
+        var dictItemConfigIndex = 'index-' + new Date().getTime().toString() //简单保证下异步设置唯一的字典
+        kadSyncConfig.needSyncDictItemCount[dictItemConfigIndex] = 0
+        kadSyncConfig.finishedSyncDictItemCount[dictItemConfigIndex] = 0
+        addDictItem(syncDomian, rows, dictItemConfigIndex, function() {
+          successCallback({
+            Id: key,
+            Res: {
+              Result: true
+            }
+          })
+        })
+      }
+      if (existDictItemRes.Total > 0) {
+        ajaxPost(syncDomian + '/Config/DictItemConfig/Delete', {
+          DictID: thatDictItem.DictID,
+          Id: key
+        })
+          .done(function(delRes) {
+            initAddDictItem()
+          })
+          .fail(function(jqXHR) {
+            initAddDictItem()
+          })
+      } else {
+        initAddDictItem()
+      }
+    })
+    .fail(function(jqXHR) {
+      layer.msg('同步出现异常，请查看console')
+      console.error(jqXHR)
+    })
 }
 //同步字典逻辑结束---------------------------------------------------------------------------------------------------------------------
 
@@ -1899,3 +1992,24 @@ function uploadImgToManage2(
   downloadXHR.send()
 }
 //图片上传结束-----------------------------------------------------------------------------------------------------------------------------
+
+function ajaxPost(url, data) {
+  return $.ajax({
+    type: 'post',
+    url: url,
+    data: JSON.stringify(data),
+    cache: false,
+    contentType: 'application/json; charset=utf-8',
+    dataType: 'json'
+  })
+}
+function fetchPost(url, data) {
+  return fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }).then(res => res.json())
+}
