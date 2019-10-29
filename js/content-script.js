@@ -164,7 +164,7 @@ function initSyncPop() {
         btnArr = ['同步到RC', '同步到正式', '取消']
         // btnArr = ['同步到RC', '取消'];
         btn1SyncDomain = 'https://rcmanage.360kad.com'
-        btn2SyncDomain = 'http://manage.360kad.com'
+        btn2SyncDomain = 'https://manage.360kad.com'
         break
       case 'rcmanage.360kad.com':
         if (!kadSyncConfig.envConfig.enabledRCSync) {
@@ -173,7 +173,7 @@ function initSyncPop() {
         btnArr = ['同步到TST', '同步到正式', '取消']
         // btnArr = ['同步到TST', '取消'];
         btn1SyncDomain = 'https://tstmanage.360kad.com'
-        btn2SyncDomain = 'http://manage.360kad.com'
+        btn2SyncDomain = 'https://manage.360kad.com'
         break
       case 'manage.360kad.com':
         if (!kadSyncConfig.envConfig.enabledPRODSync) {

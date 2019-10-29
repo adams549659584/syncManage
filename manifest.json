@@ -36,7 +36,7 @@
     "content_scripts": [{
         //"matches": ["http://*/*", "https://*/*"],
         // "<all_urls>" 表示匹配所有地址
-        "matches": ["https://tstmanage.360kad.com/*", "https://rcmanage.360kad.com/*", "http://manage.360kad.com/*"],
+        "matches": ["https://tstmanage.360kad.com/*", "https://rcmanage.360kad.com/*", "https://manage.360kad.com/*"],
         // 多个JS按顺序注入
         "js": ["js/jquery-1.8.3.js", "js/layer.js", "js/content-script.js"],
         // JS的注入可以随便一点，但是CSS的注意就要千万小心了，因为一不小心就可能影响全局样式
